@@ -32,6 +32,14 @@ struct Args {
         help = "Path to the output file. Defaults to `~/.config/zed/themes/<FILENAME>` where `<FILENAME>` is the name of the template file without `.template` suffix."
     )]
     output: Option<PathBuf>,
+
+    /// watch for changes in the template and variables file
+    #[arg(
+        short,
+        long,
+        help = "Watch for changes in the template and variables files, and run the substitutor automatically."
+    )]
+    watch: bool,
 }
 
 fn main() {
@@ -97,7 +105,13 @@ fn main() {
     let mut substitutor =
         Substitutor::new(args.template, args.variables.unwrap(), args.output.unwrap());
 
-    futures::executor::block_on(substitutor.watch()).expect("Failed to watch files");
+    if args.watch {
+        futures::executor::block_on(substitutor.watch()).expect("Failed to watch files");
+    } else {
+        substitutor
+            .substitute_variables()
+            .expect("Failed to substitute variables");
+    }
 }
 
 struct Substitutor {
