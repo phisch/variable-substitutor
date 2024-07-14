@@ -1,10 +1,8 @@
 use futures::{channel::mpsc::channel, SinkExt, StreamExt};
 use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use toml::Value;
 use std::{
-    fmt::Debug,
-    fs::{self},
-    path::{Path, PathBuf},
-    process::exit,
+    collections::HashMap, fmt::Debug, fs::{self}, path::{Path, PathBuf}, process::exit
 };
 use tracing::{error, info};
 
@@ -167,19 +165,40 @@ impl Substitutor {
         Ok(())
     }
 
+    fn flatten_toml(&self, value: &Value, prefix: String) -> HashMap<String, String> {
+        let mut flattened = HashMap::new();
+        self.flatten_recursive(value, &mut flattened, prefix);
+        flattened
+    }
+    
+    fn flatten_recursive(&self, value: &Value, flattened: &mut HashMap<String, String>, prefix: String) {
+        match value {
+            Value::Table(table) => {
+                for (key, val) in table {
+                    let new_prefix = if prefix.is_empty() { key.clone() } else { format!("{}.{}", prefix, key) };
+                    self.flatten_recursive(val, flattened, new_prefix);
+                }
+            },
+            Value::String(s) => {
+                flattened.insert(prefix, s.clone());
+            },
+            // Handle other types similarly...
+            _ => {}
+        }
+    }
+
     fn substitute_variables(&self) -> std::io::Result<()> {
         let variables: toml::Value =
             toml::from_str(&fs::read_to_string(&self.variables_file)?).unwrap();
+        
+        let flattened = self.flatten_toml(&variables, "".to_string());
 
         let mut content = fs::read_to_string(&self.template_file)?.to_string();
+        
 
-        if let Some(colors) = variables.get("colors").and_then(|c| c.as_table()) {
-            for (key, value) in colors {
-                let key: String = format!("${}", key);
-                if let Some(value) = value.as_str() {
-                    content = content.replace(&key, value);
-                }
-            }
+        for (key, value) in flattened {
+            let key: String = format!("${}", key);
+            content = content.replace(&key, &value);
         }
 
         if let Err(e) = fs::write(&self.output_file, &content) {

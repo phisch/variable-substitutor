@@ -7,9 +7,18 @@ This is a little helper application that allows you to use color variables while
 Create a file called `variables.toml`, that contains your color variables:
 
 ```toml
-[colors]
-red = "#ff0000"
-green = "#00ff00"
+alert = "#ffcc00"
+
+[accent]
+blue = "#497EE9"
+
+[muted]
+purple = "#382B72"
+
+[surface]
+primary = "#0A0A0A"
+secondary = "#141414"
+
 ```
 
 Now use those variables inside your theme template by prefixing their names with `$`. For example, create `custom.json.template` with the following content:
@@ -17,19 +26,23 @@ Now use those variables inside your theme template by prefixing their names with
 ```json
 {
   "$schema": "https://zed.dev/schema/themes/v0.1.0.json",
-  "name": "Custom Theme",
+  "name": "Custom",
   "author": "Philipp Schaffrath",
   "themes": [
     {
-      "name": "Custom Theme Dark",
+      "name": "Custom Dark",
       "appearance": "dark",
       "style": {
-        "editor.background": "$red",
-        "panel.background": "$green"
+        "title_bar.background": "$accent.blue",
+        "editor.background": "$surface.primary",
+        "panel.background": "$surface.secondary",
+        "status_bar.background": "$muted.purple",
+        "error.background": "$alert"
       }
     }
   ]
 }
+
 
 ```
 And finally, run:
